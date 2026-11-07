@@ -78,3 +78,19 @@ curl -fsS http://127.0.0.1:8080/
 {"greeting": "Hello from supersonic", "count": 3, "hostname": "cb0ad526f525", "storage": "sqlite"}
 ```
 hostname1 = 9e596dec2f06, hostname2 = cb0ad526f525, hostname1 не равен hostname2, а счетчик равен 3 в обоих случаях, значит данные сохранились в volume.
+### Проверка замены порта и приветствия
+Создадим .env
+```sh
+FREE_PORT=2971
+MESSAGE="HHEELLLLOO"
+```
+Пересоздадим контейнер и проверим, что старый порт не работает, все перенеслось с сохранением счетчика на новый.
+```sh
+docker compose up -d
+curl -fsS http://127.0.0.1:8080/
+curl -fsS http://127.0.0.1:2971/
+```
+```
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+{"greeting": "HHEELLLLOO", "count": 3, "hostname": "e87822c53961", "storage": "sqlite"}
+```
