@@ -94,3 +94,74 @@ curl -fsS http://127.0.0.1:2971/
 curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
 {"greeting": "HHEELLLLOO", "count": 3, "hostname": "e87822c53961", "storage": "sqlite"}
 ```
+
+## 8 баллов — отдельное хранилище
+
+### Сборка
+```sh
+docker compose up -d --build
+docker compose ps
+```
+```
+NAME                           IMAGE                      COMMAND                  SERVICE   CREATED          STATUS                            PORTS
+docker-m77supersonic-app-1     docker-m77supersonic-app   "python3 app.py"         app       10 seconds ago   Up 4 seconds (health: starting)   0.0.0.0:8080->8000/tcp, [::]:8080->8000/tcp
+docker-m77supersonic-redis-1   redis:7.4-alpine           "docker-entrypoint.s…"   redis     10 seconds ago   Up 10 seconds (healthy)           6379/tcp
+```
+### Проверка сохранения счетчика после удаления контейнера и создания нового
+```sh
+curl -fsS http://127.0.0.1:8080/
+curl -fsS -X POST http://127.0.0.1:8080/increment
+curl -fsS -X POST http://127.0.0.1:8080/increment
+curl -fsS -X POST http://127.0.0.1:8080/increment
+curl -fsS http://127.0.0.1:8080/
+```
+```
+{"greeting": "Hello from supersonic", "count": 0, "hostname": "9b0955d34e85", "storage": "redis"}
+{"greeting": "Hello from supersonic", "count": 1, "hostname": "9b0955d34e85", "storage": "redis"}
+{"greeting": "Hello from supersonic", "count": 2, "hostname": "9b0955d34e85", "storage": "redis"}
+{"greeting": "Hello from supersonic", "count": 3, "hostname": "9b0955d34e85", "storage": "redis"}
+{"greeting": "Hello from supersonic", "count": 3, "hostname": "9b0955d34e85", "storage": "redis"}
+```
+Правильный storage = redis
+N = 3
+```sh
+docker compose down
+docker compose up -d
+docker compose ps
+curl -fsS http://127.0.0.1:8080/
+```
+```
+NAME                           IMAGE                      COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+docker-m77supersonic-app-1     docker-m77supersonic-app   "python3 app.py"         app       12 seconds ago   Up 6 seconds (healthy)    0.0.0.0:8080->8000/tcp, [::]:8080->8000/tcp
+docker-m77supersonic-redis-1   redis:7.4-alpine           "docker-entrypoint.s…"   redis     12 seconds ago   Up 11 seconds (healthy)   6379/tcp
+{"greeting": "Hello from supersonic", "count": 3, "hostname": "215c43a7d849", "storage": "redis"}
+```
+Контейнеры пересозданы, а счетчик тот же.
+### Проверка работы приложения после остановки redis
+```sh
+docker compose stop redis
+curl -i http://127.0.0.1:8080/healthz
+curl -fsS -X POST http://127.0.0.1:8080/increment
+curl -fsS http://127.0.0.1:8080/readyz
+```
+```
+HTTP/1.0 200 OK
+{"status": "alive"}
+curl: (22) The requested URL returned error: 503
+curl: (22) The requested URL returned error: 503
+```
+### Проверка работы приложения после запуска redis
+```sh
+docker compose start redis
+docker compose ps
+curl -fsS http://127.0.0.1:8080/
+curl -fsS -X POST http://127.0.0.1:8080/increment
+```
+```
+NAME                           IMAGE                      COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+docker-m77supersonic-app-1     docker-m77supersonic-app   "python3 app.py"         app       10 minutes ago   Up 10 minutes (healthy)   0.0.0.0:8080->8000/tcp, [::]:8080->8000/tcp
+docker-m77supersonic-redis-1   redis:7.4-alpine           "docker-entrypoint.s…"   redis     10 minutes ago   Up 2 minutes (healthy)    6379/tcp
+{"greeting": "Hello from supersonic", "count": 3, "hostname": "215c43a7d849", "storage": "redis"}
+{"greeting": "Hello from supersonic", "count": 4, "hostname": "215c43a7d849", "storage": "redis"}
+```
+После возвращения redis счeтчик не потерялся, следующий POST увеличил его до N + 1.
