@@ -5,7 +5,30 @@ services:
       - "${FREE_PORT:-8080}:8000"
     environment:
       GREETING: "${MESSAGE:-Hello from supersonic}"
+      STORAGE: redis
+      REDIS_URL: redis://redis:6379/0
     volumes:
        - "save_counter:/data" 
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=1)"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      redis:
+        condition: service_healthy
+  redis:
+    image: redis:7.4-alpine
+    volumes:
+       - "save_counter_redis:/data" 
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 5s
 volumes:
   save_counter:
+  save_counter_redis:
