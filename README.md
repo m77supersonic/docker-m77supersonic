@@ -165,3 +165,29 @@ docker-m77supersonic-redis-1   redis:7.4-alpine           "docker-entrypoint.s�
 {"greeting": "Hello from supersonic", "count": 4, "hostname": "215c43a7d849", "storage": "redis"}
 ```
 После возвращения redis счeтчик не потерялся, следующий POST увеличил его до N + 1.
+
+## 10 баллов — проверка восстановления
+
+### Проверка UID
+```sh
+docker compose exec app id -u
+```
+```
+7431
+```
+### Проверка режима чтения
+```sh
+docker inspect "$(docker compose ps -q app)" --format '{{.HostConfig.ReadonlyRootfs}}'
+```
+```
+true
+```
+### Проверка RAM и CPU
+```sh
+docker inspect "$(docker compose ps -q app)" --format '{{.HostConfig.Memory}}'
+docker inspect "$(docker compose ps -q app)" --format '{{.HostConfig.NanoCpus}}'
+```
+```
+268435456
+1000000000
+```
