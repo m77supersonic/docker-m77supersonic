@@ -18,6 +18,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    user: "7431:3174"
+    read_only: true
+    tmpfs:
+      - /copy_changes
+    mem_limit: 256m
+    cpus: 1.0
   redis:
     image: redis:7.4-alpine
     volumes:
