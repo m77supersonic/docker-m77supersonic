@@ -191,3 +191,24 @@ docker inspect "$(docker compose ps -q app)" --format '{{.HostConfig.NanoCpus}}'
 268435456
 1000000000
 ```
+## Полная проверка работы
+Запускаем скрипт обязательно из корня репозитория
+```sh
+chmod +x scripts/check.sh
+./scripts/check.sh
+echo $?
+./scripts/check.sh
+echo $?
+```
+```
+0
+0
+```
+## Проверка создания двух различных резервных копий
+```sh
+ls -l -h backup
+```
+```
+-rw-rw-r-- 1 supersonic supersonic 6,0K ноя 22 15:01 redis_check_11540_26507.tar
+-rw-rw-r-- 1 supersonic supersonic 6,0K ноя 22 14:52 redis_check_9747_28726.tar
+```
